@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Decentralized Marketplace</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>Decentralized Marketplace</h1>
+      <p>Buy, Sell, and Confirm Delivery with Blockchain</p>
+    </header>
+    <div style="text-align: center; padding-top: 15px;">
+      <div><strong>Wallet Address: </strong> <span id="walletAddress"></span></div>
+      <div><strong>Balance: </strong> <span id="balanceOfAddress"></span></div>
+    </div>
+
+    <main>
+      <!-- Register Product Section -->
+      <section class="register-section">
+        <h2>Register a Product</h2>
+        <div id="register-form" class="register-form">
+          <input type="text" id="product-title" placeholder="Product Title" required>
+          <textarea id="product-desc" placeholder="Product Description" required></textarea>
+          <input type="number" id="product-price" placeholder="Price in Tokens" required>
+          <button id="registerProduct" onclick=registerProduct() >Register Product</button>
+        </div>
+      </section>
+
+      <!-- Products Section -->
+
+      <section class="products-section">
+        <h2>Products</h2>
+        <div id="products-container" class="products-container"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>&copy; 2024 Decentralized Marketplace</p>
+    </footer>
+  </div>
+
+  <script src="ABI.js?v=11.65"></script>
+  <script src="script.js?v=11.91"></script>
+</body>
+</html>
