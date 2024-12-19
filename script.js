@@ -1,13 +1,17 @@
-const contractAddress = "0x04e214E756849d32B1C5d4c3027494FaA079bB46";
-const tokenAddress = "0xE337AB0f8bDF4cC6C2567dC95286E2E69bcC7FCB";
+const contractAddress = "0xD1a1bE8e4b6bDF91F0a339F19F6bD45cb6d4bC0e";
+const tokenAddress = "0x4F599f3cAA709551849Bd466B3665Dfa5f0F7335";
 
 
 let web3;
 let contract;
 let tokenContract;
 let productsList = [];
-let balanceInWei;
+let balanceInEth;
 let symbol;
+let balance;
+let coin;
+
+let _payWithToken = false;
 
 
 async function switchToBnbTestnet() {
@@ -65,6 +69,10 @@ window.addEventListener("load", async () => {
             walletAddressText.innerHTML = currentSelectedAddress;
             console.log("Wallet Address:", currentSelectedAddress);
 
+            const nativeCoinBalanceWei = await web3.eth.getBalance(currentSelectedAddress);
+            coin = web3.utils.fromWei(nativeCoinBalanceWei, "ether");
+            console.log(`Native Coin Balance: ${coin} tBNB`);
+
             // Initialize contracts
             if (!contract) {
                 contract = new web3.eth.Contract(contractABI, contractAddress);
@@ -75,10 +83,13 @@ window.addEventListener("load", async () => {
             }
 
             // Fetch and display balance
-            const balance = await tokenContract.methods.balanceOf(currentSelectedAddress).call();
+            balance = await tokenContract.methods.balanceOf(currentSelectedAddress).call();
             symbol = await tokenContract.methods.symbol().call();
-			balanceInWei = web3.utils.fromWei(balance, "ether");
-            balanceOfAddress.innerHTML =  balanceInWei + " " + symbol;
+			      balanceInEth = web3.utils.fromWei(balance, "ether");
+
+            let coin4Dixit = Number(coin).toFixed(4)
+            
+            balanceOfAddress.innerHTML =  `${balanceInEth} ${symbol} | ${coin4Dixit} tBNB` ;
 
             // Listen for account changes
             window.ethereum.on("accountsChanged", async (newAccount) => {
@@ -88,8 +99,11 @@ window.addEventListener("load", async () => {
 
                 if (updatedAddress) {
                     const updatedBalance = await tokenContract.methods.balanceOf(updatedAddress).call();
+                    const updateNativeCoinBalanceWei = await web3.eth.getBalance(updatedAddress);
+                    coin = web3.utils.fromWei(updateNativeCoinBalanceWei, "ether");
+                    coin4Dixit = Number(coin).toFixed(4)
                     balanceOfAddress.innerHTML =
-                        web3.utils.fromWei(updatedBalance, "ether") + " " + symbol;
+                        web3.utils.fromWei(updatedBalance, "ether") + " " + symbol + "|" + coin4Dixit + " tBNB";
                 } else {
                     balanceOfAddress.innerHTML = "0 " + symbol;
                 }
@@ -161,25 +175,29 @@ async function loadProducts() {
 		const productCard = document.createElement("div");
 		productCard.className = "product-card";
 		productCard.innerHTML = `
-		  <h3>${product.title}</h3>
-		  <p>${product.desc}</p>
-		  <p>Price: ${priceInEther} eBLK</p>
-		  <p>Seller: ${product.seller}</p>
-		  <p>Buyer: ${
-			product.buyer === "0x0000000000000000000000000000000000000000"
-			  ? "None"
-			  : product.buyer
-		  }</p>
-		  <p>Delivered: ${product.delivered ? "Yes" : "No"}</p>
-		  ${
-			product.buyer === "0x0000000000000000000000000000000000000000"
-			  ? `<button onclick="buyProduct(${productId})">Buy</button>`
-			  : product.buyer.toLowerCase() === accounts[0].toLowerCase() &&
-				!product.delivered
-			  ? `<button onclick="confirmDelivery(${productId})">Confirm Delivery</button>`
-			  : ""
-		  }
-		`;
+  <h3>${product.title}</h3>
+  <p>${product.desc}</p>
+  <p>Price: ${priceInEther} eBLK / tBNB</p>
+  <p>Seller: ${product.seller}</p>
+  <p>Buyer: ${
+    product.buyer === "0x0000000000000000000000000000000000000000"
+      ? "None"
+      : product.buyer
+  }</p>
+  <p>Delivered: ${product.delivered ? "Yes" : "No"}</p>
+  ${ 
+    product.buyer === "0x0000000000000000000000000000000000000000"
+      ? `
+        <button onclick="buyProduct(${productId}, false)">Buy with Native Coin</button>
+        <button onclick="buyProduct(${productId}, true)">Buy with Token</button>
+      `
+      : product.buyer.toLowerCase() === accounts[0].toLowerCase() &&
+        !product.delivered
+      ? `<button onclick="confirmDelivery(${productId})">Confirm Delivery</button>`
+      : ""
+  }
+`;
+
 		productsContainer.appendChild(productCard);
 	  }
 	} catch (error) {
@@ -198,65 +216,70 @@ async function loadProducts() {
   
 
 // Function to buy a product
-async function buyProduct(productId) {
+async function buyProduct(productId, _payWithToken) {
   try {
-	// alert(balanceInWei)
-	const accounts = await web3.eth.getAccounts();
-	const selectedAccount = accounts[0];
-	
+    const accounts = await web3.eth.getAccounts();
+    const selectedAccount = accounts[0];
+    
+    const product = productsList.find((p) => Number(p.productId) === productId);
+    const seller = product.seller;
+    const manager = await contract.methods.manager().call();
+
+    const productTitle = product.title;
+    const productPrice = product.price;
+    const priceInEther = web3.utils.fromWei(product.price.toString(), "ether");
 
 
-	const product = productsList.find((p)=>Number(p.productId) === productId );
-	const seller = product.seller;
+    if (selectedAccount.toLowerCase() === seller.toLowerCase()) {
+      alert("You cannot buy your own product...");
+      return;
+    }
 
-	const manager = await contract.methods.manager().call()
+    if (selectedAccount.toLowerCase() === manager.toLowerCase()) {
+      alert("Manager can't buy any product...");
+      return;
+    }
 
-	const productTitle = product.title;
-	const productPrice = product.price;
-
-	const priceInEther = web3.utils.fromWei(product.price.toString(), "ether");
-
-	alert(priceInEther);
-
-	if(selectedAccount.toLowerCase() === seller.toLowerCase()){
-		alert("You cannot buy your own product...")
-		return;		
-	}
-
-	if(selectedAccount.toLowerCase()=== manager.toLowerCase()){
-		alert("Manager can't buy any product...");
-		return;
-
-	}
-
-	if(balanceInWei<priceInEther){
-		alert("You don't have enough Ether to buy this product");
-		return;
-	}
-
-	const approved = await tokenContract.methods.approve(contractAddress,productPrice).send({ from: selectedAccount });
-
-    alert("Approval successful!");
-
-	const allowance = await tokenContract.methods.allowance(selectedAccount, contractAddress).call();
-
-	const allowanceInEther = web3.utils.fromWei(allowance, "ether");
-    alert(`Allowance granted: ${allowanceInEther} ETH`);
-
-
-	const confirmation = confirm("Are you sure you want to buy this?");
+    const confirmation = confirm("Are you sure you want to buy this?");
     if (!confirmation) return;
 
+    if (_payWithToken) {
+      // Token-based payment
+      const tokenBalance = await tokenContract.methods.balanceOf(selectedAccount).call();
+      if (Number(tokenBalance) < Number(productPrice)) {
+        alert("You don't have enough tokens to buy this product.");
+        return;
+      }
 
+      // Approve tokens for the contract
+      await tokenContract.methods
+        .approve(contractAddress, productPrice)
+        .send({ from: selectedAccount });
 
-    await contract.methods.buy(productId).send({ from: selectedAccount });
+      alert("Approval successful!");
+    } else {
+      // Native coin (BNB) payment
+      const coin = await web3.eth.getBalance(selectedAccount);
+      if (Number(coin) < Number(productPrice)) {
+        alert("You don't have enough Ether to buy this product.");
+        return;
+      }
+    }
+
+    // Call the buy method with appropriate parameters
+    await contract.methods.buy(productId, _payWithToken).send({
+      from: selectedAccount,
+      value: _payWithToken ? 0 : productPrice, 
+    });
+
     alert(`Product ${productTitle} purchased successfully!`);
-    loadProducts(); // Reload products to update the list
+    loadProducts();
   } catch (error) {
     console.error("Error buying product:", error);
     alert("Failed to buy the product. Please check your connection or contract interaction.");
   }
 }
+
 
 // Function to confirm delivery of a product
 async function confirmDelivery(productId) {
@@ -276,7 +299,7 @@ async function confirmDelivery(productId) {
 
     await contract.methods.delivery(productId).send({ from: accounts[0] });
     alert(`Product ${productTitle} delivered successfully!`);
-    loadProducts(); // Reload products to update the list
+    loadProducts();
   } catch (error) {
     console.error("Error confirming delivery:", error);
     alert("Failed to confirm delivery. Please check your connection or contract interaction.");
@@ -306,17 +329,18 @@ async function registerProduct() {
 	}
 
 
-
+  const priceInWei = web3.utils.toWei(price,"ether");
+  console.log(priceInWei);
+  
 
 
     await contract.methods
-      .registerItem(title, desc, price)
+      .registerItem(title, desc, priceInWei)
       .send({ from: accounts[0] });
     alert("Product registered successfully!");
-    loadProducts(); // Reload products to update the list
+    loadProducts();
   } catch (error) {
     console.error("Error registering product:", error);
     alert("Failed to register the product. Please check your connection or contract interaction.");
   }
 }
-
