@@ -55,7 +55,7 @@ This application allows sellers to list products and buyers to purchase them usi
 ---
 
 ## 📝 Smart Contract  
-Explore the Solidity smart contract on [BNB Testnet](https://testnet.bscscan.com/address/0xD1a1bE8e4b6bDF91F0a339F19F6bD45cb6d4bC0e).  
+Explore the Solidity varified smart contract on [BNB Testnet](https://testnet.bscscan.com/address/0xD1a1bE8e4b6bDF91F0a339F19F6bD45cb6d4bC0e).  
 
 ---
 
